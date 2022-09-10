@@ -14,14 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class GroupQueue implements Runnable {
-    // TODO downloader 应该放在这个位置》，每个分组一个实例
     private final GroupQueueConfig config;
-    private ArrayBlockingQueue<PageRequest> blockingQueue;
+    private BlockingQueue<PageRequest> blockingQueue;
     private final ThreadPoolExecutor threadPoolExecutor;
     private final Logger logger = LoggerFactory.getLogger(GroupQueue.class);
     private Spider spider;
@@ -32,19 +29,18 @@ public class GroupQueue implements Runnable {
     public GroupQueue(GroupQueueConfig config) {
         this.config = config;
         Integer poolSize = config.getPoolSize();
-        // TODO 最大10000个线程？
-        ArrayBlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<>(maxSize);
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(maxSize);
         String namingPattern = config.getQueueName() + "-pool-%d";
         BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(namingPattern).build();
         this.threadPoolExecutor = new ThreadPoolExecutor(poolSize, poolSize + 1, 3000,
-                TimeUnit.MILLISECONDS, blockingQueue, threadFactory, new BlockRejectedExecutionHandler());
+                TimeUnit.MILLISECONDS, workQueue, threadFactory, new BlockRejectedExecutionHandler());
     }
 
     public void setEngine(Spider spider) {
         this.spider = spider;
     }
 
-    public void setBlockingQueue(ArrayBlockingQueue<PageRequest> blockingQueue) {
+    public void setBlockingQueue(BlockingQueue<PageRequest> blockingQueue) {
         this.blockingQueue = blockingQueue;
     }
 

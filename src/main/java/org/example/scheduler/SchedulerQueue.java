@@ -20,10 +20,9 @@ public class SchedulerQueue implements Runnable {
         while (true) {
             try {
                 if (!running) {
-                    scheduler.destroy();
                     break;
                 }
-                PageRequest pageRequest = scheduler.poll();
+                PageRequest pageRequest = scheduler.next();
                 if (pageRequest == null) {
                     logger.debug("no pageRequest,sleep...");
                     // 如果scheduler没有使用阻塞队列，会出现性能问题

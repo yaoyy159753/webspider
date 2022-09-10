@@ -4,8 +4,11 @@ import org.example.downloader.DownLoader;
 import org.example.middleware.Middleware;
 import org.example.parser.Parser;
 import org.example.pipeline.Pipeline;
-import org.example.scheduler.BaseScheduler;
+import org.example.scheduler.DuplicatedFilter;
 import org.example.scheduler.Scheduler;
+import org.example.scheduler.TaskQueue;
+import org.example.scheduler.base.LifoMemoryQueue;
+import org.example.scheduler.base.SetDuplicatedFilter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,8 +17,9 @@ public class SpiderBuilder {
     protected SpiderBuilder() {
     }
 
+    private TaskQueue taskQueue;
+    private DuplicatedFilter duplicatedFilter;
     private Integer workQueueSize;
-    private Scheduler scheduler;
     private boolean redirect = true;
     private boolean retry = true;
     private final Map<String, Parser> spiderMap = new HashMap<>();
@@ -23,11 +27,6 @@ public class SpiderBuilder {
     private final Map<String, DownLoader> downLoaderMap = new HashMap<>();
     private final Map<String, Middleware> beforeRequestMap = new HashMap<>();
     private final Map<String, Middleware> afterResponseMap = new HashMap<>();
-
-    public SpiderBuilder scheduler(Scheduler scheduler) {
-        this.scheduler = scheduler;
-        return this;
-    }
 
     public SpiderBuilder addParser(Parser parser) {
         this.spiderMap.put(parser.getName(), parser);
@@ -70,6 +69,16 @@ public class SpiderBuilder {
         return this;
     }
 
+    public SpiderBuilder taskQueue(TaskQueue taskQueue) {
+        this.taskQueue = taskQueue;
+        return this;
+    }
+
+    public SpiderBuilder duplicatedFilter(DuplicatedFilter duplicatedFilter) {
+        this.duplicatedFilter = duplicatedFilter;
+        return this;
+    }
+
     public Spider start() {
         Spider spider = new Spider();
         for (Map.Entry<String, Parser> entry : spiderMap.entrySet()) {
@@ -97,11 +106,13 @@ public class SpiderBuilder {
             spider.registerResponseMiddleware(name, v);
         }
 
-        if (scheduler != null) {
-            spider.registerScheduler(scheduler);
-        } else {
-            spider.registerScheduler(new BaseScheduler());
+        if (taskQueue == null) {
+            taskQueue = new LifoMemoryQueue();
         }
+        if (duplicatedFilter == null) {
+            duplicatedFilter = new SetDuplicatedFilter();
+        }
+        spider.registerScheduler(new Scheduler(taskQueue, duplicatedFilter));
         if (workQueueSize != null && workQueueSize > 0) {
             spider.setWorkQueueSize(workQueueSize);
         }

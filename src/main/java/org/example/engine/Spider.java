@@ -21,9 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class Spider {
@@ -53,8 +51,9 @@ public class Spider {
     protected Spider() {
         logger.debug("spider start ....");
         BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("spider-pool-%d").build();
+        BlockingQueue<Runnable> wordQueue = new LinkedBlockingQueue<>(100);
         this.threadPoolExecutor = new ThreadPoolExecutor(7, 7, 3000,
-                TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(100), threadFactory, new BlockRejectedExecutionHandler());
+                TimeUnit.MILLISECONDS, wordQueue, threadFactory, new BlockRejectedExecutionHandler());
         this.parserQueue = new ParserQueue(this);
         this.pipelineQueue = new PipelineQueue();
         this.requestQueue = new RequestQueue(this);
@@ -205,7 +204,7 @@ public class Spider {
             request.setDownLoader(downLoader);
         }
         this.selectListener(request);
-        this.scheduler.push(request);
+        this.scheduler.enqueue(request);
     }
 
     public void sendPipeline(PageItems items) {

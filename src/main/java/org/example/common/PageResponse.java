@@ -2,7 +2,7 @@ package org.example.common;
 
 
 import org.apache.commons.io.IOUtils;
-import org.example.exception.EngineException;
+import org.example.exception.SpiderException;
 import org.example.parser.Parser;
 
 import java.io.IOException;
@@ -82,14 +82,14 @@ public class PageResponse {
 
     public String getRawText() {
         if (!isSuccess()) {
-            throw new EngineException("get raw text failed , response is failed");
+            throw new SpiderException("get raw text failed , response is failed");
         }
         return Objects.toString(rawText, "");
     }
 
     public String getRawTextFromBody() {
         if (!isSuccess()) {
-            throw new EngineException("get raw text failed , response is failed");
+            throw new SpiderException("get raw text failed , response is failed");
         }
         try {
             if (rawText != null) {
@@ -132,7 +132,7 @@ public class PageResponse {
 
     public InputStream getRawBody() {
         if (!isSuccess()) {
-            throw new EngineException("get raw body failed ,response is failed");
+            throw new SpiderException("get raw body failed ,response is failed");
         }
         return rawBody;
     }

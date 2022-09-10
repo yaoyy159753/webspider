@@ -5,25 +5,24 @@ import org.example.common.BlockRejectedExecutionHandler;
 import org.example.common.GroupQueueConfig;
 import org.example.common.PageRequest;
 import org.example.engine.Spider;
-import org.example.exception.EngineException;
+import org.example.exception.SpiderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class RequestQueue {
     private volatile boolean running = true;
-    private int workQueueSize = 666;
+    private final int workQueueSize = 666;
     private final Map<String, GroupQueue> groupQueueMap = new HashMap<>();
+    private final LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(1000);
     private final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("request-pool-%d").build();
     private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(workQueueSize, workQueueSize, 3000,
-            TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(1000), threadFactory, new BlockRejectedExecutionHandler());
+            TimeUnit.MILLISECONDS, workQueue, threadFactory, new BlockRejectedExecutionHandler());
     private final Logger logger = LoggerFactory.getLogger(RequestQueue.class);
     private final Spider spider;
 
@@ -44,7 +43,7 @@ public class RequestQueue {
         if (groupQueue.isRunning()) {
             groupQueue.addTask(pageRequest);
         } else {
-            throw new EngineException("groupQueue is not running");
+            throw new SpiderException("groupQueue is not running");
         }
 
     }
@@ -66,7 +65,7 @@ public class RequestQueue {
         if (groupQueueMap.containsKey(queueName)) {
             return;
         }
-        ArrayBlockingQueue<PageRequest> queue = new ArrayBlockingQueue<>(spider.getWorkQueueSize());
+        BlockingQueue<PageRequest> queue = new LinkedBlockingQueue<>(spider.getWorkQueueSize());
         GroupQueue groupQueue = new GroupQueue(config);
         groupQueue.setEngine(spider);
         groupQueue.setBlockingQueue(queue);

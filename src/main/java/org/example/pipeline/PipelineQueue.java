@@ -6,23 +6,20 @@ import org.example.common.PageItems;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class PipelineQueue implements Runnable {
     private volatile boolean running = true;
     private final Logger logger = LoggerFactory.getLogger(PipelineQueue.class);
-    private final ArrayBlockingQueue<PageItems> blockingQueue;
+    private final BlockingQueue<PageItems> blockingQueue = new LinkedBlockingQueue<>(1000);;
     private final ThreadPoolExecutor threadPoolExecutor;
     private int workQueueSize = Runtime.getRuntime().availableProcessors();
 
     public PipelineQueue() {
-        this.blockingQueue = new ArrayBlockingQueue<>(1000);
-        ArrayBlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<>(100);
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(100);
         BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("pipeline-pool-%d").build();
         this.threadPoolExecutor = new ThreadPoolExecutor(workQueueSize, workQueueSize, 3000,
-                TimeUnit.MILLISECONDS, blockingQueue, threadFactory, new BlockRejectedExecutionHandler());
+                TimeUnit.MILLISECONDS, workQueue, threadFactory, new BlockRejectedExecutionHandler());
     }
 
     public void addTask(PageItems pageItems) {

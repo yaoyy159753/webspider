@@ -7,24 +7,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class ParserQueue implements Runnable {
     private volatile boolean running = true;
     private final Logger logger = LoggerFactory.getLogger(ParserQueue.class);
-    private final ArrayBlockingQueue<PageResponse> blockingQueue;
+    private final BlockingQueue<PageResponse> blockingQueue;
     private final ThreadPoolExecutor threadPoolExecutor;
     private final Spider spider;
     private int workQueueSize = Runtime.getRuntime().availableProcessors();
 
     public ParserQueue(Spider spider) {
-        this.blockingQueue = new ArrayBlockingQueue<>(1000);
+        this.blockingQueue = new LinkedBlockingQueue<>(1000);
         BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("parser-pool-%d").build();
-        ArrayBlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<>(100);
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(100);
         this.threadPoolExecutor = new ThreadPoolExecutor(workQueueSize, workQueueSize, 3000,
-                TimeUnit.MILLISECONDS, blockingQueue, threadFactory, new BlockRejectedExecutionHandler());
+                TimeUnit.MILLISECONDS, workQueue, threadFactory, new BlockRejectedExecutionHandler());
         this.spider = spider;
     }
 
