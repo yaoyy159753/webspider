@@ -1,7 +1,11 @@
 package org.example.engine;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.example.common.*;
+import org.example.common.BlockRejectedExecutionHandler;
+import org.example.common.GroupQueueConfig;
+import org.example.common.PageItems;
+import org.example.common.PageRequest;
+import org.example.common.PageResponse;
 import org.example.downloader.DownLoader;
 import org.example.downloader.OkClientDownLoader;
 import org.example.downloader.RequestQueue;
@@ -20,8 +24,15 @@ import org.example.scheduler.SchedulerQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class Spider {

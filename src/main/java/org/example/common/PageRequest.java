@@ -8,7 +8,11 @@ import org.example.middleware.Middleware;
 import java.net.Proxy;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class PageRequest {
     private final Map<String, Object> extra = new HashMap<>();

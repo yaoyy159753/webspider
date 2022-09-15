@@ -1,24 +1,31 @@
 package org.example.parser;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.example.common.*;
+import org.example.common.BlockRejectedExecutionHandler;
+import org.example.common.PageItems;
+import org.example.common.PageRequest;
+import org.example.common.PageResponse;
+import org.example.common.ProcessResult;
 import org.example.engine.Spider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class ParserQueue implements Runnable {
     private volatile boolean running = true;
     private final Logger logger = LoggerFactory.getLogger(ParserQueue.class);
-    private final BlockingQueue<PageResponse> blockingQueue;
+    private final int parserQueueSize = 1_0000;
+    private final BlockingQueue<PageResponse> blockingQueue = new LinkedBlockingQueue<>(parserQueueSize);
     private final ThreadPoolExecutor threadPoolExecutor;
     private final Spider spider;
     private int workQueueSize = Runtime.getRuntime().availableProcessors();
 
     public ParserQueue(Spider spider) {
-        this.blockingQueue = new LinkedBlockingQueue<>(1000);
         BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("parser-pool-%d").build();
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(100);
         this.threadPoolExecutor = new ThreadPoolExecutor(workQueueSize, workQueueSize, 3000,

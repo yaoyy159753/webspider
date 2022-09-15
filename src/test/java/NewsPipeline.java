@@ -1,8 +1,6 @@
 import org.example.common.PageItems;
 import org.example.pipeline.Pipeline;
 
-import java.util.List;
-
 public class NewsPipeline extends Pipeline {
     public NewsPipeline() {
         super("newsPipeline");
