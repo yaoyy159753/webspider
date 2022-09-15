@@ -45,7 +45,7 @@ public class Spider {
     private final ThreadPoolExecutor threadPoolExecutor;
     private final Logger logger = LoggerFactory.getLogger(Spider.class);
     private Scheduler scheduler;
-    private Integer workQueueSize = 6_5534;
+    private Integer workQueueSize = 2_0000;
     private final ParserQueue parserQueue;
     private final PipelineQueue pipelineQueue;
     private final RequestQueue requestQueue;

@@ -14,10 +14,10 @@ import java.util.concurrent.TimeUnit;
 public class PipelineQueue implements Runnable {
     private volatile boolean running = true;
     private final Logger logger = LoggerFactory.getLogger(PipelineQueue.class);
-    private final int pipelineQueueSize = 1_0000;
+    private final int pipelineQueueSize = 5_0000;
     private final BlockingQueue<PageItems> blockingQueue = new LinkedBlockingQueue<>(pipelineQueueSize);
     private final ThreadPoolExecutor threadPoolExecutor;
-    private int workQueueSize = Runtime.getRuntime().availableProcessors() * 2;
+    private int workQueueSize = Runtime.getRuntime().availableProcessors();
 
     public PipelineQueue() {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(100);

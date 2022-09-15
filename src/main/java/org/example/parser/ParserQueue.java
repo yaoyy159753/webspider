@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class ParserQueue implements Runnable {
     private volatile boolean running = true;
     private final Logger logger = LoggerFactory.getLogger(ParserQueue.class);
-    private final int parserQueueSize = 1_0000;
+    private final int parserQueueSize = 5_0000;
     private final BlockingQueue<PageResponse> blockingQueue = new LinkedBlockingQueue<>(parserQueueSize);
     private final ThreadPoolExecutor threadPoolExecutor;
     private final Spider spider;
