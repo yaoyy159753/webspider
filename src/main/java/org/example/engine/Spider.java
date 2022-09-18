@@ -1,14 +1,13 @@
 package org.example.engine;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.example.common.BlockRejectedExecutionHandler;
 import org.example.common.GroupQueueConfig;
 import org.example.common.PageItems;
 import org.example.common.PageRequest;
 import org.example.common.PageResponse;
 import org.example.downloader.DownLoader;
-import org.example.downloader.OkClientDownLoader;
-import org.example.downloader.RequestQueue;
+import org.example.downloader.RequestCenter;
+import org.example.downloader.base.OkClientDownLoader;
 import org.example.middleware.Middleware;
 import org.example.middleware.base.DownloaderMiddleware;
 import org.example.middleware.base.RedirectMiddleware;
@@ -29,10 +28,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class Spider {
@@ -42,13 +39,16 @@ public class Spider {
     private final Map<String, Parser> parserMap = new LinkedHashMap<>();
     private final Map<String, Pipeline> pipelineMap = new LinkedHashMap<>();
     private final Map<String, DownLoader> downLoaderMap = new LinkedHashMap<>();
-    private final ThreadPoolExecutor threadPoolExecutor;
+    private final ExecutorService threadPoolExecutor;
     private final Logger logger = LoggerFactory.getLogger(Spider.class);
     private Scheduler scheduler;
-    private Integer workQueueSize = 2_0000;
-    private final ParserQueue parserQueue;
-    private final PipelineQueue pipelineQueue;
-    private final RequestQueue requestQueue;
+    // TODO 默认值待定
+    private int parserQueueSize = 5_000;
+    private int pipelineQueueSize = 5_000;
+    private int groupQueueSize = 1_0000;
+    private ParserQueue parserQueue;
+    private PipelineQueue pipelineQueue;
+    private RequestCenter requestCenter;
     private final SchedulerQueue schedulerQueue;
     private final Pipeline simplePipeline = new SimplePipeline();
     private final Parser simpleParser = new SimpleParser();
@@ -61,28 +61,16 @@ public class Spider {
 
     protected Spider() {
         logger.debug("spider start ....");
-        BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("spider-pool-%d").build();
-        BlockingQueue<Runnable> wordQueue = new LinkedBlockingQueue<>(100);
-        this.threadPoolExecutor = new ThreadPoolExecutor(7, 7, 3000,
-                TimeUnit.MILLISECONDS, wordQueue, threadFactory, new BlockRejectedExecutionHandler());
-        this.parserQueue = new ParserQueue(this);
-        this.pipelineQueue = new PipelineQueue();
-        this.requestQueue = new RequestQueue(this);
+        BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("scheduler-pool-%d").build();
+        this.threadPoolExecutor = Executors.newSingleThreadExecutor(threadFactory);
         this.schedulerQueue = new SchedulerQueue(this);
     }
 
     protected void start() {
+        this.parserQueue = new ParserQueue(this);
+        this.pipelineQueue = new PipelineQueue(this);
+        this.requestCenter = new RequestCenter(this);
         this.threadPoolExecutor.execute(schedulerQueue);
-        this.threadPoolExecutor.execute(parserQueue);
-        this.threadPoolExecutor.execute(pipelineQueue);
-    }
-
-    protected void setWorkQueueSize(Integer workQueueSize) {
-        this.workQueueSize = workQueueSize;
-    }
-
-    public Integer getWorkQueueSize() {
-        return workQueueSize;
     }
 
     public static SpiderBuilder builder() {
@@ -108,6 +96,31 @@ public class Spider {
     public boolean isRetry() {
         return retry;
     }
+
+    protected void setParserQueueSize(int parserQueueSize) {
+        this.parserQueueSize = parserQueueSize;
+    }
+
+    protected void setPipelineQueueSize(int pipelineQueueSize) {
+        this.pipelineQueueSize = pipelineQueueSize;
+    }
+
+    public int getGroupQueueSize() {
+        return groupQueueSize;
+    }
+
+    protected void setGroupQueueSize(int groupQueueSize) {
+        this.groupQueueSize = groupQueueSize;
+    }
+
+    public int getParserQueueSize() {
+        return parserQueueSize;
+    }
+
+    public int getPipelineQueueSize() {
+        return pipelineQueueSize;
+    }
+
 
     /**
      * 获取注册的spider名称列表
@@ -142,7 +155,7 @@ public class Spider {
      * @return 分组配置列表
      */
     public List<GroupQueueConfig> groupConfigs() {
-        return this.requestQueue.getConfigs();
+        return this.requestCenter.getConfigs();
     }
 
     /**
@@ -151,7 +164,7 @@ public class Spider {
      * @param config 配置文件
      */
     public void createGroupQueueWithConfig(GroupQueueConfig config) {
-        this.requestQueue.createGroupQueueWithConfig(config);
+        this.requestCenter.createGroupQueueWithConfig(config);
     }
 
     protected void registerScheduler(Scheduler scheduler) {
@@ -201,8 +214,9 @@ public class Spider {
         Parser remove = this.parserMap.remove(key);
         return remove != null;
     }
+
     public void addSimpleTask(String startUrl) {
-       this.addTask(PageRequest.url(startUrl));
+        this.addTask(PageRequest.url(startUrl));
     }
 
     public void addTask(PageRequest request) {
@@ -222,7 +236,7 @@ public class Spider {
         String pipelineName = items.getPipelineName();
         Pipeline pipeline = this.selectPipeline(pipelineName);
         items.setPipeline(pipeline);
-        pipelineQueue.addTask(items);
+        pipelineQueue.addPipelineTask(items);
     }
 
     private Pipeline selectPipeline(String pipelineName) {
@@ -241,7 +255,7 @@ public class Spider {
 
     public void createSpiderTask(PageRequest pageRequest) {
         try {
-            requestQueue.createDownTask(pageRequest);
+            requestCenter.createDownTask(pageRequest);
         } catch (Exception e) {
             logger.error("createDownTask error", e);
         }
@@ -290,16 +304,16 @@ public class Spider {
     }
 
     public boolean removeGroupQueue(String queueName) {
-        return this.requestQueue.removeGroupQueue(queueName);
+        return this.requestCenter.removeGroupQueue(queueName);
     }
 
     public boolean updateGroupQueue(String queueName, Integer size) {
-        return this.requestQueue.updateGroupQueue(queueName, size);
+        return this.requestCenter.updateGroupQueue(queueName, size);
     }
 
     private void destroyRequestQueue() {
-        if (this.requestQueue.isRunning()) {
-            this.requestQueue.destroy();
+        if (this.requestCenter.isRunning()) {
+            this.requestCenter.destroy();
         }
     }
 
@@ -322,6 +336,7 @@ public class Spider {
     }
 
     public void shutdown() {
+        // TODO 顺序存在问题
         this.running = false;
         this.destroySchedulerQueue();
         this.destroyRequestQueue();
@@ -331,9 +346,7 @@ public class Spider {
         this.threadPoolExecutor.shutdown();
         if (this.threadPoolExecutor.isShutdown()) {
             logger.debug("shut down success....");
-            System.out.println("shut down success....");
         }
-        // TODO 任务尚未处理完成
     }
 
     public int getParserQueueWorkQueueSize() {

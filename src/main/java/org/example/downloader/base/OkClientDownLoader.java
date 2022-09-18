@@ -1,4 +1,4 @@
-package org.example.downloader;
+package org.example.downloader.base;
 
 import okhttp3.Call;
 import okhttp3.ConnectionPool;
@@ -10,6 +10,7 @@ import okhttp3.ResponseBody;
 import org.apache.commons.io.IOUtils;
 import org.example.common.PageRequest;
 import org.example.common.PageResponse;
+import org.example.downloader.DownLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,14 @@ import java.util.concurrent.TimeUnit;
 
 // TODO 修改为接口，支持在engine中配置
 public class OkClientDownLoader extends DownLoader {
-    private final OkHttpClient client = new OkHttpClient().newBuilder().connectionPool(new ConnectionPool(128, 5L, TimeUnit.MINUTES)).followRedirects(false).retryOnConnectionFailure(true)
+    private final OkHttpClient client = new OkHttpClient()
+            .newBuilder()
+            .connectionPool(new ConnectionPool(128, 5L, TimeUnit.MINUTES))
+            .callTimeout(1,TimeUnit.MINUTES)
+            .connectTimeout(1,TimeUnit.MINUTES)
+            .readTimeout(1,TimeUnit.MINUTES)
+            .followRedirects(false)
+            .retryOnConnectionFailure(true)
             .sslSocketFactory(getSSLSocketFactory(), getX509TrustManager()).hostnameVerifier(getHostnameVerifier()).build();
     private final Logger logger = LoggerFactory.getLogger(OkClientDownLoader.class);
 

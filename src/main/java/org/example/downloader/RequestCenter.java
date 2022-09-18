@@ -1,7 +1,5 @@
 package org.example.downloader;
 
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.example.common.BlockRejectedExecutionHandler;
 import org.example.common.GroupQueueConfig;
 import org.example.common.PageRequest;
 import org.example.engine.Spider;
@@ -12,46 +10,33 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class RequestQueue {
+public class RequestCenter {
     private volatile boolean running = true;
-    private final int workQueueSize = 666;
-    private final Map<String, GroupQueue> groupQueueMap = new HashMap<>();
-    private final LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(1000);
-    private final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("request-pool-%d").build();
-    private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(workQueueSize, workQueueSize, 3000,
-            TimeUnit.MILLISECONDS, workQueue, threadFactory, new BlockRejectedExecutionHandler());
-    private final Logger logger = LoggerFactory.getLogger(RequestQueue.class);
+    private final Map<String, RequestGroup> groupQueueMap = new HashMap<>();
+    private final Logger logger = LoggerFactory.getLogger(RequestCenter.class);
     private final Spider spider;
 
-    public RequestQueue(Spider spider) {
+    public RequestCenter(Spider spider) {
         this.spider = spider;
     }
 
-    public int getWorkQueueSize() {
-        return workQueueSize;
-    }
-
-    public void createDownTask(PageRequest pageRequest) throws InterruptedException {
+    public void createDownTask(PageRequest pageRequest) {
         if (!running) {
             logger.error("RequestQueue is not running");
             return;
         }
-        GroupQueue groupQueue = this.selectQueue(pageRequest);
-        if (groupQueue.isRunning()) {
-            groupQueue.addTask(pageRequest);
+        RequestGroup requestGroup = this.selectGroup(pageRequest);
+        if (requestGroup.isRunning()) {
+            requestGroup.addRequestTask(pageRequest);
         } else {
             throw new SpiderException("groupQueue is not running");
         }
 
     }
 
-    private GroupQueue selectQueue(PageRequest pageRequest) {
+    private RequestGroup selectGroup(PageRequest pageRequest) {
         String group = pageRequest.getGroup();
         String queueName = group == null || group.isEmpty() ? "default" : group;
         GroupQueueConfig simple = GroupQueueConfig.simple(queueName);
@@ -68,12 +53,8 @@ public class RequestQueue {
         if (groupQueueMap.containsKey(queueName)) {
             return;
         }
-        BlockingQueue<PageRequest> queue = new LinkedBlockingQueue<>(spider.getWorkQueueSize());
-        GroupQueue groupQueue = new GroupQueue(config);
-        groupQueue.setEngine(spider);
-        groupQueue.setBlockingQueue(queue);
-        groupQueueMap.put(queueName, groupQueue);
-        threadPoolExecutor.execute(groupQueue);
+        RequestGroup requestGroup = new RequestGroup(config, spider);
+        groupQueueMap.put(queueName, requestGroup);
     }
 
     /**
@@ -83,9 +64,9 @@ public class RequestQueue {
      * @return 移除结果
      */
     public boolean removeGroupQueue(String queueName) {
-        GroupQueue groupQueue = this.groupQueueMap.remove(queueName);
-        if (groupQueue != null) {
-            groupQueue.destroy();
+        RequestGroup requestGroup = this.groupQueueMap.remove(queueName);
+        if (requestGroup != null) {
+            requestGroup.destroy();
             return true;
         }
         logger.error("no {} groupQueue found", queueName);
@@ -100,9 +81,9 @@ public class RequestQueue {
      * @return 返回结果
      */
     public boolean updateGroupQueue(String queueName, Integer size) {
-        GroupQueue groupQueue = this.groupQueueMap.get(queueName);
-        if (groupQueue != null) {
-            return groupQueue.updatePoolSize(size);
+        RequestGroup requestGroup = this.groupQueueMap.get(queueName);
+        if (requestGroup != null) {
+            return requestGroup.updatePoolSize(size);
 
         }
         logger.error("no {} groupQueue found , update failed", queueName);
@@ -115,18 +96,16 @@ public class RequestQueue {
      * @return 分组信息列表
      */
     public List<GroupQueueConfig> getConfigs() {
-        return groupQueueMap.values().stream().map(GroupQueue::getConfig).collect(Collectors.toList());
+        return groupQueueMap.values().stream().map(RequestGroup::getConfig).collect(Collectors.toList());
     }
-
 
     public void destroy() {
         this.running = false;
-        for (Map.Entry<String, GroupQueue> entry : this.groupQueueMap.entrySet()) {
-            GroupQueue groupQueue = entry.getValue();
-            groupQueue.destroy();
+        for (Map.Entry<String, RequestGroup> entry : this.groupQueueMap.entrySet()) {
+            RequestGroup requestGroup = entry.getValue();
+            requestGroup.destroy();
         }
         this.groupQueueMap.clear();
-        this.threadPoolExecutor.shutdown();
     }
 
     public boolean isRunning() {

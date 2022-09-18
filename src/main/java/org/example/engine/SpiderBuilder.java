@@ -19,9 +19,11 @@ public class SpiderBuilder {
 
     private TaskQueue taskQueue;
     private DuplicatedFilter duplicatedFilter;
-    private Integer workQueueSize;
     private boolean redirect = true;
     private boolean retry = true;
+    private int parserQueueSize;
+    private int pipelineQueueSize;
+    private int groupQueueSize;
     private final Map<String, Parser> spiderMap = new HashMap<>();
     private final Map<String, Pipeline> pipelineMap = new HashMap<>();
     private final Map<String, DownLoader> downLoaderMap = new HashMap<>();
@@ -30,6 +32,21 @@ public class SpiderBuilder {
 
     public SpiderBuilder addParser(Parser parser) {
         this.spiderMap.put(parser.getName(), parser);
+        return this;
+    }
+
+    public SpiderBuilder groupQueueSize(int groupQueueSize) {
+        this.groupQueueSize = groupQueueSize;
+        return this;
+    }
+
+    public SpiderBuilder parserQueueSize(int parserQueueSize) {
+        this.parserQueueSize = parserQueueSize;
+        return this;
+    }
+
+    public SpiderBuilder pipelineQueueSize(int pipelineQueueSize) {
+        this.pipelineQueueSize = pipelineQueueSize;
         return this;
     }
 
@@ -51,11 +68,6 @@ public class SpiderBuilder {
 
     public SpiderBuilder addDownLoader(DownLoader downLoader) {
         this.downLoaderMap.put(downLoader.getName(), downLoader);
-        return this;
-    }
-
-    public SpiderBuilder workQueueSize(Integer workQueueSize) {
-        this.workQueueSize = workQueueSize;
         return this;
     }
 
@@ -113,9 +125,18 @@ public class SpiderBuilder {
             duplicatedFilter = new SetDuplicatedFilter();
         }
         spider.registerScheduler(new Scheduler(taskQueue, duplicatedFilter));
-        if (workQueueSize != null && workQueueSize > 0) {
-            spider.setWorkQueueSize(workQueueSize);
+
+        if (this.parserQueueSize > 0) {
+            spider.setParserQueueSize(this.parserQueueSize);
         }
+        if (this.pipelineQueueSize > 0) {
+            spider.setPipelineQueueSize(this.pipelineQueueSize);
+        }
+
+        if (this.groupQueueSize > 0) {
+            spider.setGroupQueueSize(this.groupQueueSize);
+        }
+
         spider.setRedirect(this.redirect);
         spider.setRetry(this.retry);
         spider.start();

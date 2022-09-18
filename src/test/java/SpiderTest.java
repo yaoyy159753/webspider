@@ -8,8 +8,8 @@ public class SpiderTest {
                 .start();
         PageRequest pageRequest = PageRequest.url("https://news.baidu.com/", "newParser");
         spider.addTask(pageRequest);
-        Thread.sleep(5000);
-        spider.shutdown();
+//        Thread.sleep(5000);
+//        spider.shutdown();
     }
 
 }
