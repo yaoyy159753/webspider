@@ -273,10 +273,10 @@ public class Spider {
         parserQueue.addParseTask(pageResponse);
     }
 
-    private Parser selectParser(String spiderName) {
-        Parser parser = this.parserMap.get(spiderName);
+    private Parser selectParser(String parserName) {
+        Parser parser = this.parserMap.get(parserName);
         if (parser == null) {
-            logger.error("no spiderName {} register , use simpleParser", spiderName);
+            logger.error("no parserName {} register , use simpleParser", parserName);
             return this.simpleParser;
         }
         return parser;

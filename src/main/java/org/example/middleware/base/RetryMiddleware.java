@@ -2,7 +2,7 @@ package org.example.middleware.base;
 
 import org.example.common.PageRequest;
 import org.example.common.PageResponse;
-import org.example.config.RetryConfig;
+import org.example.config.SiteConfig;
 import org.example.middleware.Middleware;
 import org.example.middleware.MiddlewareChain;
 import org.slf4j.Logger;
@@ -16,22 +16,22 @@ public class RetryMiddleware implements Middleware {
     @Override
     public void doMiddleware(PageRequest pageRequest, PageResponse pageResponse, MiddlewareChain middlewareChain) {
         int statusCode = pageResponse.getStatusCode();
-        RetryConfig retryConfig = pageRequest.getRetryConfig();
-        if (retryConfig == null) {
+        SiteConfig siteConfig = pageRequest.getSiteConfig();
+        if (siteConfig == null) {
             logger.error("no siteConfig found , request is {}", pageRequest);
             pageResponse.setSuccess(false);
             middlewareChain.thenResponse(pageResponse);
             return;
         }
-        List<Integer> noRetryCode = retryConfig.getNoRetryCodes();
+        List<Integer> noRetryCode = siteConfig.getNoRetryCodes();
         if (noRetryCode.contains(statusCode)) {
             middlewareChain.doMiddleware(pageRequest, pageResponse);
             return;
         }
 
-        if (retryConfig.checkRetryFlag()) {
+        if (siteConfig.checkRetryFlag()) {
             pageRequest.setNoFilter(true);
-            retryConfig.retry();
+            siteConfig.retry();
             middlewareChain.thenRequest(pageRequest);
         } else {
             logger.error("retry time around max , request is {}", pageRequest);

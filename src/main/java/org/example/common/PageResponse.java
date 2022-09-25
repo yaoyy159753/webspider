@@ -23,8 +23,6 @@ public class PageResponse {
     private boolean success;
     private Parser parser;
 
-    private String orgUrl;
-
     public String getOrgUrl() {
         return this.pageRequest.getUrl();
     }
@@ -33,7 +31,7 @@ public class PageResponse {
         return this.pageRequest.getExtra(key);
     }
 
-    private Map<String, String> responseHeaders = new HashMap<>();
+    private final Map<String, String> responseHeaders = new HashMap<>();
 
 
     private InputStream rawBody;
@@ -42,8 +40,8 @@ public class PageResponse {
         return responseHeaders;
     }
 
-    public void addResponseHeaders(String key,String value) {
-        this.responseHeaders.put(key,value);
+    public void addResponseHeaders(String key, String value) {
+        this.responseHeaders.put(key, value);
     }
 
 

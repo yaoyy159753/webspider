@@ -3,6 +3,7 @@ package org.example.middleware.base;
 import org.apache.commons.lang3.ArrayUtils;
 import org.example.common.PageRequest;
 import org.example.common.PageResponse;
+import org.example.config.SiteConfig;
 import org.example.middleware.Middleware;
 import org.example.middleware.MiddlewareChain;
 import org.slf4j.Logger;
@@ -21,7 +22,13 @@ public class RedirectMiddleware implements Middleware {
             middlewareChain.doMiddleware(pageRequest, pageResponse);
             return;
         }
-
+        SiteConfig siteConfig = pageRequest.getSiteConfig();
+        if (!siteConfig.checkRedirectFlag()) {
+            logger.error("redirect time max ,  {}", pageResponse);
+            middlewareChain.doMiddleware(pageRequest, pageResponse);
+            return;
+        }
+        siteConfig.redirect();
         Map<String, String> responseHeaders = pageResponse.getResponseHeaders();
         String location = responseHeaders.get("location");
         if (location == null) {
@@ -29,6 +36,7 @@ public class RedirectMiddleware implements Middleware {
         }
         if (location != null) {
             PageRequest copy = pageRequest.copy();
+            copy.setSiteConfig(siteConfig);
             copy.setUrl(location.trim());
             middlewareChain.thenRequest(copy);
             return;

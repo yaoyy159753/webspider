@@ -1,7 +1,7 @@
 package org.example.common;
 
 
-import org.example.config.RetryConfig;
+import org.example.config.SiteConfig;
 import org.example.downloader.DownLoader;
 import org.example.middleware.Middleware;
 
@@ -32,7 +32,7 @@ public class PageRequest {
     private List<Middleware> requestMiddlewares = new ArrayList<>();
     private List<Middleware> responseMiddlewares = new ArrayList<>();
     private List<Middleware> middlewares = new ArrayList<>();
-    private RetryConfig retryConfig = RetryConfig.custom();
+    private SiteConfig siteConfig = SiteConfig.custom();
 
     public List<Middleware> getMiddlewares() {
         return middlewares;
@@ -77,7 +77,7 @@ public class PageRequest {
         request.setBeforeRequest(new ArrayList<>(this.getBeforeRequest()));
         request.setAfterResponse(new ArrayList<>(this.getAfterResponse()));
         request.setMiddlewares(new ArrayList<>(this.getMiddlewares()));
-        request.setRetryConfig(RetryConfig.custom());
+        request.setSiteConfig(SiteConfig.custom());
         request.setProxy(this.proxy);
         return request;
     }
@@ -185,12 +185,12 @@ public class PageRequest {
         this.charset = charset;
     }
 
-    public RetryConfig getRetryConfig() {
-        return retryConfig;
+    public SiteConfig getSiteConfig() {
+        return siteConfig;
     }
 
-    public void setRetryConfig(RetryConfig retryConfig) {
-        this.retryConfig = retryConfig;
+    public void setSiteConfig(SiteConfig siteConfig) {
+        this.siteConfig = siteConfig;
     }
 
     public <T> void addExtra(String key, T extra) {
@@ -218,12 +218,12 @@ public class PageRequest {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PageRequest that = (PageRequest) o;
-        return Objects.equals(charset, that.charset) && Objects.equals(spiderName, that.spiderName) && Objects.equals(group, that.group) && Objects.equals(url, that.url) && Objects.equals(method, that.method) && Objects.equals(retryConfig, that.retryConfig) && Objects.equals(extra, that.extra);
+        return Objects.equals(charset, that.charset) && Objects.equals(spiderName, that.spiderName) && Objects.equals(group, that.group) && Objects.equals(url, that.url) && Objects.equals(method, that.method) && Objects.equals(siteConfig, that.siteConfig) && Objects.equals(extra, that.extra);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(charset, spiderName, group, url, method, retryConfig, extra);
+        return Objects.hash(charset, spiderName, group, url, method, siteConfig, extra);
     }
 
     public String getSpiderName() {
