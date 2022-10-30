@@ -2,6 +2,7 @@ package org.example.engine;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.example.common.GroupQueueConfig;
+import org.example.common.GroupStatus;
 import org.example.common.PageItems;
 import org.example.common.PageRequest;
 import org.example.common.PageResponse;
@@ -147,15 +148,6 @@ public class Spider {
      */
     public Set<String> responseListeners() {
         return this.afterResponseMap.keySet();
-    }
-
-    /**
-     * 获取分组下载配置列表
-     *
-     * @return 分组配置列表
-     */
-    public List<GroupQueueConfig> groupConfigs() {
-        return this.requestCenter.getConfigs();
     }
 
     /**
@@ -367,5 +359,9 @@ public class Spider {
 
     public Set<String> downLoaders() {
         return this.downLoaderMap.keySet();
+    }
+
+    public List<GroupStatus> getRequestGroupStatus() {
+        return this.requestCenter.getStatus();
     }
 }

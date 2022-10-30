@@ -4,6 +4,7 @@ package org.example.downloader;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.example.common.BlockRejectedExecutionHandler;
 import org.example.common.GroupQueueConfig;
+import org.example.common.GroupStatus;
 import org.example.common.PageRequest;
 import org.example.common.PageResponse;
 import org.example.engine.Spider;
@@ -13,24 +14,31 @@ import org.example.middleware.MiddlewareFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class RequestGroup {
-    private final GroupQueueConfig config;
+    private final String groupId;
+    private final String groupName;
     private final ThreadPoolExecutor threadPoolExecutor;
     private final Logger logger = LoggerFactory.getLogger(RequestGroup.class);
     private final Spider spider;
     public volatile boolean running = true;
     private final int groupQueueSize;
+    private final int poolSize;
 
     public RequestGroup(GroupQueueConfig config, Spider spider) {
-        this.config = config;
         this.spider = spider;
-        Integer poolSize = config.getPoolSize();
+        groupId = config.getQueueId();
+        groupName = config.getQueueName();
+        poolSize = config.getPoolSize();
         this.groupQueueSize = spider.getGroupQueueSize();
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(groupQueueSize);
         String namingPattern = config.getQueueName() + "-pool-%d";
@@ -39,9 +47,17 @@ public class RequestGroup {
                 TimeUnit.MILLISECONDS, workQueue, threadFactory, new BlockRejectedExecutionHandler());
     }
 
-
-    public GroupQueueConfig getConfig() {
-        return config;
+    public GroupStatus status() {
+        GroupStatus groupStatus = new GroupStatus();
+        Long completedTaskCount = this.threadPoolExecutor.getCompletedTaskCount();
+        Long taskCount = this.threadPoolExecutor.getTaskCount();
+        groupStatus.setGroupName(groupName);
+        groupStatus.setGroupId(groupId);
+        groupStatus.setPoolSize(poolSize);
+        groupStatus.setWorkSize(groupQueueSize);
+        groupStatus.setTaskCount(taskCount);
+        groupStatus.setCompletedTaskCount(completedTaskCount);
+        return groupStatus;
     }
 
     public boolean isRunning() {
@@ -55,13 +71,13 @@ public class RequestGroup {
         }
         this.threadPoolExecutor.setCorePoolSize(size);
         this.threadPoolExecutor.setMaximumPoolSize(size);
-        this.config.setPoolSize(size);
+
         return true;
     }
 
     public void addRequestTask(PageRequest pageRequest) {
         if (!running) {
-            logger.error("queue : {} is not running", this.config.getQueueName());
+            logger.error("queue : {} is not running", this.groupName);
         }
         if (pageRequest == null) {
             return;

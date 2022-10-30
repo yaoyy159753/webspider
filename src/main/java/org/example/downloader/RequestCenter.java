@@ -1,6 +1,7 @@
 package org.example.downloader;
 
 import org.example.common.GroupQueueConfig;
+import org.example.common.GroupStatus;
 import org.example.common.PageRequest;
 import org.example.engine.Spider;
 import org.example.exception.SpiderException;
@@ -90,13 +91,8 @@ public class RequestCenter {
         return false;
     }
 
-    /**
-     * 获取全部下载分组信息列表
-     *
-     * @return 分组信息列表
-     */
-    public List<GroupQueueConfig> getConfigs() {
-        return groupQueueMap.values().stream().map(RequestGroup::getConfig).collect(Collectors.toList());
+    public List<GroupStatus> getStatus() {
+        return groupQueueMap.values().stream().map(RequestGroup::status).collect(Collectors.toList());
     }
 
     public void destroy() {

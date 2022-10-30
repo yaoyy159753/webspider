@@ -3,11 +3,12 @@ package org.example.scheduler.base;
 import org.example.common.PageRequest;
 import org.example.scheduler.TaskQueue;
 
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class LifoMemoryQueue implements TaskQueue {
-    private final ArrayBlockingQueue<PageRequest> blockingQueue = new ArrayBlockingQueue<>(10000);
+    private final BlockingQueue<PageRequest> blockingQueue = new LinkedBlockingQueue<>(10000);
 
     @Override
     public boolean put(PageRequest pageRequest) {
