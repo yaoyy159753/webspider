@@ -19,6 +19,7 @@ public class PageRequest {
     private final Map<String, String> headers = new HashMap<>();
     private final Map<String, String> params = new HashMap<>();
     private Charset charset = StandardCharsets.UTF_8;
+    private boolean mobileMode = false;
     private Proxy proxy;
     private String url;
     private String method;
@@ -36,6 +37,14 @@ public class PageRequest {
 
     public List<Middleware> getMiddlewares() {
         return middlewares;
+    }
+
+    public boolean isMobileMode() {
+        return mobileMode;
+    }
+
+    public void setMobileMode(boolean mobileMode) {
+        this.mobileMode = mobileMode;
     }
 
     public void setMiddlewares(List<Middleware> middlewares) {
@@ -57,11 +66,6 @@ public class PageRequest {
 
     public PageRequest copy() {
         PageRequest request = new PageRequest();
-        for (Map.Entry<String, Object> entry : extra.entrySet()) {
-            String k = entry.getKey();
-            Object v = entry.getValue();
-            request.addExtra(k, v);
-        }
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             String k = entry.getKey();
             String v = entry.getValue();
@@ -74,6 +78,7 @@ public class PageRequest {
         request.setDownLoaderName(this.downLoaderName);
         request.setSpiderName(this.spiderName);
         request.setNoFilter(this.noFilter);
+        request.setMobileMode(this.isMobileMode());
         request.setBeforeRequest(new ArrayList<>(this.getBeforeRequest()));
         request.setAfterResponse(new ArrayList<>(this.getAfterResponse()));
         request.setMiddlewares(new ArrayList<>(this.getMiddlewares()));
